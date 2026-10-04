@@ -873,7 +873,7 @@ struct Pcsx2Config
 		GSDumpCompressionMethod GSDumpCompression = GSDumpCompressionMethod::Zstandard;
 		GSHardwareDownloadMode HWDownloadMode = GSHardwareDownloadMode::Enabled;
 		GSCASMode CASMode = DEFAULT_CAS_MODE;
-		u8 Dithering = 2;
+		u8 Dithering = 0;
 		u8 MaxAnisotropy = 0;
 		u8 TVShader = 0;
 		s16 GetSkipCountFunctionId = -1;
