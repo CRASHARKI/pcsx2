@@ -24,7 +24,7 @@ QT=6.11.2
 QTAPNG=1.3.0
 
 FREETYPE=2.14.3
-SDL=SDL3-3.4.16
+SDL=SDL3-3.4.18
 HARFBUZZ=14.2.0
 ZSTD=1.5.7
 LZ4=1.10.0
@@ -69,7 +69,7 @@ d594337feca84c26fb67fe87b85e6a5c12fda404b611d905f9d138210c311876  qtsvg-everywhe
 f1d3be3489f758efe1a8f12118a212febbe611aa670af32e0159fa3c1feab2a6  QtApng-$QTAPNG.tar.gz
 
 36bc4f1cc413335368ee656c42afca65c5a3987e8768cc28cf11ba775e785a5f  freetype-$FREETYPE.tar.xz
-7322236cd12090c3eb40b9728be4d49c76f66ad17d04369584d4ecad5cf77c68  $SDL.tar.gz
+9c75cf16330322c217dedd2e0609f1124f1b54b8633e763467b4684d0f4334a3  $SDL.tar.gz
 c652d5d94971031654ab3989891a490a895d3e3f2b71171c62692b28e94b1b93  harfbuzz-$HARFBUZZ.tar.gz
 eb33e51f49a15e023950cd7825ca74a4a2b43db8354825ac24fc1b7ee09e6fa3  zstd-$ZSTD.tar.gz
 537512904744b35e232912055ccf8ec66d768639ff3abe5788d90d792ec5f48b  lz4-$LZ4.tar.gz
@@ -232,11 +232,12 @@ tar xf "MoltenVK-$MOLTENVK.tar.gz"
 cd "MoltenVK-${MOLTENVK}"
 patch -p1 < "$SCRIPTDIR/4cf93f0f16b1503580cdb7ffdedb056321446677.patch"
 patch -p1 < "$SCRIPTDIR/mvk-texture-swizzle.patch"
-sed -i '' 's/xcodebuild "$@"/xcodebuild $XCODEBUILD_EXTRA_ARGS "$@"/g' fetchDependencies
-sed -i '' 's/XCODEBUILD :=/XCODEBUILD ?=/g' Makefile
-XCODEBUILD_EXTRA_ARGS="VALID_ARCHS=x86_64" ./fetchDependencies --macos
-XCODEBUILD="set -o pipefail && xcodebuild VALID_ARCHS=x86_64" make macos MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0 MVK_CONFIG_USE_METAL_PRIVATE_API=1
-cp Package/Latest/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib "$INSTALLDIR/lib/"
+MVKWARNFLAGS="-Wno-unguarded-availability-new"
+MVKBUILDFLAGS="$CXXFLAGS $MVKWARNFLAGS -DMVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS=0 -DMVK_CONFIG_USE_METAL_PRIVATE_API=1"
+CXXFLAGS="$MVKBUILDFLAGS" OBJCXXFLAGS="$MVKBUILDFLAGS" CFLAGS="$CFLAGS $MVKWARNFLAGS" \
+	cmake "${CMAKE_COMMON[@]}" "$CMAKE_ARCH_UNIVERSAL" -DMVK_EXCLUDE_SPIRV_TOOLS=ON -B build
+make -C build "-j$NPROCS"
+cp build/MoltenVK/libMoltenVK.dylib "$INSTALLDIR/lib/"
 cd ..
 
 echo "Installing Qt Base..."
@@ -246,8 +247,6 @@ cd "qtbase-everywhere-src-$QT"
 
 # Patch Qt to support macOS 11
 patch -p1 < "$SCRIPTDIR/qt-macos11compat.patch"
-# Backport fix build on Xcode 26.4 (https://codereview.qt-project.org/c/qt/qtbase/+/724619)
-patch -p1 < "$SCRIPTDIR/qt110-xcode264.patch"
 
 # since we don't have a direct reference to QtSvg, it doesn't deployed directly from the main binary
 # (only indirectly from iconengines), and the libqsvg.dylib imageformat plugin does not get deployed.
@@ -273,7 +272,7 @@ patch -u src/tools/macdeployqt/shared/shared.cpp <<EOF
  
      // Platforminputcontext plugins if QtGui is in use
 EOF
-cmake -B build "${CMAKE_COMMON[@]}" -DCMAKE_BUILD_TYPE=MinSizeRel -DFEATURE_dbus=OFF -DFEATURE_framework=OFF -DFEATURE_icu=OFF -DFEATURE_opengl=OFF -DFEATURE_sql=OFF -DFEATURE_gssapi=OFF -DFEATURE_system_png=ON -DFEATURE_system_jpeg=ON -DFEATURE_system_zlib=ON -DFEATURE_system_freetype=ON -DFEATURE_system_harfbuzz=ON
+cmake -B build "${CMAKE_COMMON[@]}" -DCMAKE_BUILD_TYPE=MinSizeRel -DFEATURE_dup3=OFF -DFEATURE_dbus=OFF -DFEATURE_framework=OFF -DFEATURE_icu=OFF -DFEATURE_opengl=OFF -DFEATURE_sql=OFF -DFEATURE_gssapi=OFF -DFEATURE_system_png=ON -DFEATURE_system_jpeg=ON -DFEATURE_system_zlib=ON -DFEATURE_system_freetype=ON -DFEATURE_system_harfbuzz=ON
 make -C build "-j$NPROCS"
 make -C build install
 cd ..
