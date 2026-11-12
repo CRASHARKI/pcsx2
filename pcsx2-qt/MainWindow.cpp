@@ -1871,7 +1871,11 @@ void MainWindow::onGameListEntryContextMenuRequested(const QPoint& point)
 	{
 		const bool is_favorite = entry->is_favorite;
 
-		QAction* action = menu.addAction(tr("Properties..."));
+		QAction* action;
+		if (has_custom_settings)
+			action = menu.addAction(tr("Properties... (Edit)"));
+		else
+			action = menu.addAction(tr("Properties... (New)"));
 		action->setEnabled(!entry->serial.empty() || entry->type == GameList::EntryType::ELF);
 		if (action->isEnabled())
 		{
